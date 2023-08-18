@@ -1,8 +1,8 @@
-sklearn
-tensorflow
-matplotlib
 numpy
+matplotlib
 pandas
-yahoo_fin
+tensorflow
+scikit-learn
 pandas-datareader
 yfinance
+yahoo_fin
