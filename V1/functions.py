@@ -1,14 +1,13 @@
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional
-from sklearn import preprocessing
-from sklearn.model_selection import train_test_split
-from yahoo_fin import stock_info as si
-from collections import deque
-
 import numpy as np
 import pandas as pd
+import tensorflow as tf
+import yfinance as yf
+from sklearn.model_selection import train_test_split
+from sklearn import preprocessing
+from collections import deque
 import random
+import os
+import datetime
 
 # set seed, so we can get the same results after rerunning several times
 np.random.seed(314)
@@ -22,26 +21,13 @@ def shuffle_in_unison(a, b):
     np.random.set_state(state)
     np.random.shuffle(b)
 
+def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True, store=True, lookup_step=1, split_by_date=True,
+                test_size=0.2, feature_columns=['Close','Open','High','Low','Adj Close', 'Volume']):
 
-def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, split_by_date=True,
-                test_size=0.2, feature_columns=['adjclose', 'volume', 'open', 'high', 'low']):
-    """
-    Loads data from Yahoo Finance source, as well as scaling, shuffling, normalizing and splitting.
-    Params:
-        ticker (str/pd.DataFrame): the ticker you want to load, examples include AAPL, TESL, etc.
-        n_steps (int): the historical sequence length (i.e window size) used to predict, default is 50
-        scale (bool): whether to scale prices from 0 to 1, default is True
-        shuffle (bool): whether to shuffle the dataset (both training & testing), default is True
-        lookup_step (int): the future lookup step to predict, default is 1 (e.g next day)
-        split_by_date (bool): whether we split the dataset into training/testing by date, setting it 
-            to False will split datasets in a random way
-        test_size (float): ratio for test data, default is 0.2 (20% testing data)
-        feature_columns (list): the list of features to use to feed into the model, default is everything grabbed from yahoo_fin
-    """
     # see if ticker is already a loaded stock from yahoo finance
     if isinstance(ticker, str):
         # load it from yahoo_fin library
-        df = si.get_data(ticker)
+        df = yf.download(ticker, start=start_date, end=end_date, progress=False)
     elif isinstance(ticker, pd.DataFrame):
         # already loaded, use it directly
         df = ticker
@@ -58,8 +44,8 @@ def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, split
         assert col in df.columns, f"'{col}' does not exist in the dataframe."
 
     # add date as a column
-    if "date" not in df.columns:
-        df["date"] = df.index
+    if "Date" not in df.columns:
+        df["Date"] = df.index
 
     if scale:
         column_scaler = {}
@@ -73,19 +59,19 @@ def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, split
         result["column_scaler"] = column_scaler
 
     # add the target column (label) by shifting by `lookup_step`
-    df['future'] = df['adjclose'].shift(-lookup_step)
+    df['future'] = df['Adj Close'].shift(-lookup_step)
 
     # last `lookup_step` columns contains NaN in future column
     # get them before droping NaNs
     last_sequence = np.array(df[feature_columns].tail(lookup_step))
-    
+
     # drop NaNs
     df.dropna(inplace=True)
 
     sequence_data = []
     sequences = deque(maxlen=n_steps)
 
-    for entry, target in zip(df[feature_columns + ["date"]].values, df['future'].values):
+    for entry, target in zip(df[feature_columns + ["Date"]].values, df['future'].values):
         sequences.append(entry)
         if len(sequences) == n_steps:
             sequence_data.append([np.array(sequences), target])
@@ -97,7 +83,7 @@ def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, split
     last_sequence = np.array(last_sequence).astype(np.float32)
     # add to result
     result['last_sequence'] = last_sequence
-    
+
     # construct the X's and y's
     X, y = [], []
     for seq, target in sequence_data:
@@ -113,16 +99,17 @@ def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, split
         train_samples = int((1 - test_size) * len(X))
         result["X_train"] = X[:train_samples]
         result["y_train"] = y[:train_samples]
-        result["X_test"]  = X[train_samples:]
-        result["y_test"]  = y[train_samples:]
+        result["X_test"] = X[train_samples:]
+        result["y_test"] = y[train_samples:]
         if shuffle:
             # shuffle the datasets for training (if shuffle parameter is set)
             shuffle_in_unison(result["X_train"], result["y_train"])
             shuffle_in_unison(result["X_test"], result["y_test"])
-    else:    
+    else:
         # split the dataset randomly
-        result["X_train"], result["X_test"], result["y_train"], result["y_test"] = train_test_split(X, y, 
-                                                                                test_size=test_size, shuffle=shuffle)
+        result["X_train"], result["X_test"], result["y_train"], result["y_test"] = train_test_split(X, y,
+                                                                                                    test_size=test_size,
+                                                                                                    shuffle=shuffle)
 
     # get the list of test set dates
     dates = result["X_test"][:, -1, -1]
@@ -133,34 +120,25 @@ def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, split
     # remove dates from the training/testing sets & convert to float32
     result["X_train"] = result["X_train"][:, :, :len(feature_columns)].astype(np.float32)
     result["X_test"] = result["X_test"][:, :, :len(feature_columns)].astype(np.float32)
+
+    if store:
+        store_data(result, ticker)
+
     print(result)
     return result
 
+def store_data(data, ticker):
+    # create these folders if they does not exist
+    if not os.path.isdir("V1/results"):
+        os.mkdir("V1/results")
 
-def create_model(sequence_length, n_features, units=256, cell=LSTM, n_layers=2, dropout=0.3,
-                loss="mean_absolute_error", optimizer="rmsprop", bidirectional=False):
-    model = Sequential()
-    for i in range(n_layers):
-        if i == 0:
-            # first layer
-            if bidirectional:
-                model.add(Bidirectional(cell(units, return_sequences=True), batch_input_shape=(None, sequence_length, n_features)))
-            else:
-                model.add(cell(units, return_sequences=True, batch_input_shape=(None, sequence_length, n_features)))
-        elif i == n_layers - 1:
-            # last layer
-            if bidirectional:
-                model.add(Bidirectional(cell(units, return_sequences=False)))
-            else:
-                model.add(cell(units, return_sequences=False))
-        else:
-            # hidden layers
-            if bidirectional:
-                model.add(Bidirectional(cell(units, return_sequences=True)))
-            else:
-                model.add(cell(units, return_sequences=True))
-        # add dropout after each layer
-        model.add(Dropout(dropout))
-    model.add(Dense(1, activation="linear"))
-    model.compile(loss=loss, metrics=["mean_absolute_error"], optimizer=optimizer)
-    return model
+    if not os.path.isdir("V1/logs"):
+        os.mkdir("V1/logs")
+
+    if not os.path.isdir("V1/data"):
+        os.mkdir("V1/data")
+
+    date_now = datetime.date.today().strftime('%Y-%m-%d')
+    ticker_data_filename = os.path.join("V1/data", f"{ticker}_{date_now}.csv")
+    # save the dataframe
+    data['df'].to_csv(ticker_data_filename)
