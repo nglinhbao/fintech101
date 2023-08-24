@@ -29,17 +29,18 @@ def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True
         # load it from yahoo_fin library
         df = yf.download(ticker, start=start_date, end=end_date, progress=False)
     elif isinstance(ticker, pd.DataFrame):
-        # already loaded, use it directly
+        # if already loaded, use it directly
         df = ticker
     else:
+        #print error if there is
         raise TypeError("ticker can be either a str or a `pd.DataFrame` instances")
 
-    # this will contain all the elements we want to return from this function
+    # what we want to return from this function
     result = {}
-    # we will also return the original dataframe itself
+    # also return the original dataframe itself
     result['df'] = df.copy()
 
-    # make sure that the passed feature_columns exist in the dataframe
+    # check if the featured columns exist
     for col in feature_columns:
         assert col in df.columns, f"'{col}' does not exist in the dataframe."
 
@@ -47,6 +48,7 @@ def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True
     if "Date" not in df.columns:
         df["Date"] = df.index
 
+    #in case the user want to scale
     if scale:
         column_scaler = {}
         # scale the data (prices) from 0 to 1
@@ -113,6 +115,7 @@ def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True
 
     # get the list of test set dates
     dates = result["X_test"][:, -1, -1]
+    print(dates)
     # retrieve test features from the original dataframe
     result["test_df"] = result["df"].loc[dates]
     # remove duplicated dates in the testing dataframe
@@ -124,11 +127,10 @@ def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True
     if store:
         store_data(result, ticker)
 
-    print(result)
     return result
 
 def store_data(data, ticker):
-    # create these folders if they does not exist
+    # create these folders if they do not exist
     if not os.path.isdir("V1/results"):
         os.mkdir("V1/results")
 
