@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.finance import *
+from mplfinance import *
 import matplotlib.dates as mdates
 symbollist = ['EWT','IDX','EIDO','FTW']
 typelist = ['training','testing']
