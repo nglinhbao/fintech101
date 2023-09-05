@@ -1,10 +1,9 @@
 from stock_prediction import create_model, load_data
-from tensorflow.keras.layers import LSTM
+from tensorflow.keras.layers import LSTM, RNN
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
 import os
 import pandas as pd
 from parameters import *
-
 
 # create these folders if they does not exist
 if not os.path.isdir("results"):

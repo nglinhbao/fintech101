@@ -8,14 +8,7 @@ from collections import deque
 import random
 import os
 import datetime
-import bokeh
-from math import pi
-from bokeh.plotting import figure, ColumnDataSource
-from bokeh.models import HoverTool, Whisker
-from bokeh.io import show
-from bokeh.resources import INLINE
-from bokeh.layouts import column
-import matplotlib.pyplot as plt
+import joblib
 
 # set seed, so we can get the same results after rerunning several times
 np.random.seed(314)
@@ -29,9 +22,23 @@ def shuffle_in_unison(a, b):
     np.random.set_state(state)
     np.random.shuffle(b)
 
-def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True, store=True, lookup_step=1, split_by_date=True,
-                test_size=0.2, feature_columns=['Close','Open','High','Low','Adj Close', 'Volume']):
+def calculate_percentage(start_date, end_date, breakpoint_date):
+    # Convert the date strings to datetime objects
+    start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+    end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+    breakpoint_date = datetime.datetime.strptime(breakpoint_date, '%Y-%m-%d')
 
+    # Calculate the time differences
+    time_difference_start_to_breakpoint = (breakpoint_date - start_date).days
+    time_difference_start_to_end = (end_date - start_date).days
+    print(breakpoint_date)
+    # Calculate the percentage
+    percentage = (time_difference_start_to_breakpoint / time_difference_start_to_end)
+    return 1-percentage
+
+def load_data(ticker, start_date, end_date, n_steps, scale, shuffle, store, lookup_step, split_by_date,
+                test_size, feature_columns, store_scale, breakpoint_date="2000-01-01"):
+    global scaler
     # see if ticker is already a loaded stock from yahoo finance
     if isinstance(ticker, str):
         # load it from yahoo_fin library
@@ -47,6 +54,8 @@ def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True
     result = {}
     # also return the original dataframe itself
     result['df'] = df.copy()
+
+    result['feature_columns'] = feature_columns
 
     # check if the featured columns exist
     for col in feature_columns:
@@ -105,16 +114,11 @@ def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True
     y = np.array(y)
 
     if split_by_date:
-        # split the dataset into training & testing sets by date (not randomly splitting)
-        train_samples = int((1 - test_size) * len(X))
-        result["X_train"] = X[:train_samples]
-        result["y_train"] = y[:train_samples]
-        result["X_test"] = X[train_samples:]
-        result["y_test"] = y[train_samples:]
-        if shuffle:
-            # shuffle the datasets for training (if shuffle parameter is set)
-            shuffle_in_unison(result["X_train"], result["y_train"])
-            shuffle_in_unison(result["X_test"], result["y_test"])
+        test_size = calculate_percentage(start_date, end_date, breakpoint_date)
+        # split the dataset randomly
+        result["X_train"], result["X_test"], result["y_train"], result["y_test"] = train_test_split(X, y,
+                                                                                                    test_size=test_size,
+                                                                                                    shuffle=shuffle)
     else:
         # split the dataset randomly
         result["X_train"], result["X_test"], result["y_train"], result["y_test"] = train_test_split(X, y,
@@ -131,10 +135,16 @@ def load_data(ticker, start_date, end_date, n_steps=50, scale=True, shuffle=True
     result["X_train"] = result["X_train"][:, :, :len(feature_columns)].astype(np.float32)
     result["X_test"] = result["X_test"][:, :, :len(feature_columns)].astype(np.float32)
 
-    if store:
-        store_data(result, ticker)
+    filename = ""
 
-    return result
+    if store:
+        filename = store_data(result, ticker)
+
+    if store_scale:
+        scaler_filename = "scaler.save"
+        joblib.dump(scaler, scaler_filename)
+
+    return [result, filename]
 
 def store_data(data, ticker):
     # create these folders if they do not exist
@@ -151,96 +161,11 @@ def store_data(data, ticker):
     ticker_data_filename = os.path.join("data", f"{ticker}_{date_now}.csv")
     # save the dataframe
     data['df'].to_csv(ticker_data_filename)
+    filename = f"{ticker}_{date_now}.csv"
+    return filename
 
-def add_tooltip(ax, df):
-    # This function adds tooltips to the candlestick chart
-    for i, row in df.iterrows():
-        ax.annotate(f'{row["Open"]:.2f}', xy=(i, row["Open"]), xytext=(i, row["Open"] + 2), textcoords='data', arrowprops=dict(arrowstyle='->'))
+# Load data from file saved in results folder
+def load_data_file(ticker, date):
+    df = pd.read_csv(f"data/{ticker}_{date}.csv")
+    return df
 
-def delete_gaps(df, trading_days):
-    index_lists = []
-    i = trading_days - 1
-    while i < len(df):
-        index_lists.append(i)
-        i += trading_days
-
-    # Select rows with indexes in index_lists
-    result_df = df.iloc[index_lists]
-
-    return result_df
-
-#Visualize the dataframe
-def visualization(df, trading_days):
-    dt_range = pd.date_range(start="2015-01-01", end="2015-03-01")
-    df = df[df.index.isin(dt_range)]
-
-    # Calculate the average values of 'trading_days' consecutive days
-    df = df.rolling(window=trading_days, min_periods=1, step=trading_days).mean()
-
-    # Delete the redundants rows after rolling
-    # df = delete_gaps(df, trading_days)
-
-    print(df)
-
-    #Create median column for boxplot chart
-    df['Median'] = df[['High', 'Low', 'Open', 'Close']].median(axis=1)
-
-    #Hover tooltip box
-    hover = HoverTool(
-        tooltips=[
-            ('Date', '@Date{%Y-%m-%d}'),  # Display the 'Date' value in 'yyyy-mm-dd' format
-            ('Open', '@Open'),  # Display the 'Open' column value with formatting
-            ('High', '@High'),  # Debugging: Print High value
-            ('Low', '@Low'),  # Debugging: Print Low value
-            ('Close', '@Close'),  # Debugging: Print Close value
-            ('Volume', '@Volume')  # Debugging: Print Volume value
-        ],
-        formatters={'@Date': 'datetime'},
-        mode='mouse'
-    )
-
-    source = ColumnDataSource(data=df)
-
-    # Create ColumnDataSources for increasing and decreasing values
-    inc_source = ColumnDataSource(data=df[df.Close > df.Open])
-    dec_source = ColumnDataSource(data=df[df.Open > df.Close])
-
-    #width
-    w = 12 * 60 * 60 * 1000
-
-    #Candlestick chart
-    candle = figure(x_axis_type="datetime", width=800, height=500, title="Representation of the stock price")
-
-    # Create the line
-    candle.segment('Date', 'High', 'Date', 'Low', source=source, color="black")
-
-    # Create vbar glyphs for increasing and decreasing values with different colors
-    candle.vbar('Date', w, 'Open', 'Close', source=inc_source, fill_color="green", line_color="green",
-             legend_label="Increasing")
-    candle.vbar('Date', w, 'Open', 'Close', source=dec_source, fill_color="red", line_color="red",
-             legend_label="Decreasing")
-
-    # Add hovering function
-    candle.add_tools(hover)
-
-    # Boxplot Chart
-
-    box = figure(x_axis_type="datetime", width=800, height=600)
-
-    # Create whiskers
-    whisker = Whisker(base="Date", lower="Low", upper="High", source=ColumnDataSource(df))
-
-    box.add_layout(whisker)
-
-    # Create increasing/decreasing boxes with different colors
-    box.vbar("Date", w, "Median", "Open", color="green", source=inc_source, line_color="black", legend_label="Increasing")
-    box.vbar("Date", w, "Close", "Median", color="green", source=inc_source, line_color="black")
-
-    box.vbar("Date", w, "Median", "Open", color="red", source=dec_source, line_color="black", legend_label="Decreasing")
-    box.vbar("Date", w, "Close", "Median", color="red", source=dec_source, line_color="black")
-
-    # Add hovering function
-    box.add_tools(hover)
-
-    # Display charts
-    show(column(candle, box))
