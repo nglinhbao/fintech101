@@ -5,6 +5,8 @@ from visulization import visualization
 from train import create_model, train_model
 from test import test_model
 
+# Parameters
+
 # Company name
 COMPANY = "TSLA"
 
