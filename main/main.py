@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Dense, Dropout, LSTM, InputLayer, RNN, GRU
+from tensorflow.keras.layers import Dense, Dropout, LSTM, InputLayer, SimpleRNN, GRU
 
 from data_processing import load_data
 from visulization import visualization
@@ -62,7 +62,6 @@ BATCH_SIZE = 64
 EPOCHS = 25
 
 
-
 ### Main code
 
 # load_data function
@@ -77,7 +76,7 @@ filename = data_loaded[1]
 visualization(data['df'], TRADING_DAYS)
 
 # Create model
-model = create_model(50, len(data['feature_columns']), GRU)
+model = create_model(50, len(data['feature_columns']), LSTM, UNITS)
 
 train = True
 # Train model

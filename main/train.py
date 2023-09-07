@@ -1,11 +1,11 @@
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional, RNN, GRU
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional, SimpleRNN, GRU
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
 import os
 
 
 # Create model function
-def create_model(sequence_length, n_features, layer_name, units=256, n_layers=2, dropout=0.3,
+def create_model(sequence_length, n_features, layer_name, units, n_layers=2, dropout=0.3,
                  loss="mean_absolute_error", optimizer="rmsprop", bidirectional=False):
     # Create a Sequential model
     model = Sequential()
