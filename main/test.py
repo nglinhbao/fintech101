@@ -26,8 +26,6 @@ def get_final_df(model, data, scale, k_days):
     y_test = data["y_test"]
     # perform prediction and get prices
     y_pred = model.predict(X_test)
-    # y_pred = reshape_y(y_pred, k_days)
-    # y_test = reshape_y(y_test, k_days)
 
     if scale:
         y_test = np.squeeze(data["column_scaler"]["Adj Close"].inverse_transform(y_test))
@@ -49,7 +47,7 @@ def get_final_df(model, data, scale, k_days):
     print(test_df)
 
     final_df = test_df
-    return final_df, y_pred[-1]
+    return final_df
 
 def test_model(data, model, model_name, scale, k_days, loss_name, n_steps):
     # load optimal model weights from results folder
@@ -64,7 +62,7 @@ def test_model(data, model, model_name, scale, k_days, loss_name, n_steps):
     else:
         mean_absolute_error = mae
     # get the final dataframe for the testing set
-    final_df, future_price = get_final_df(model, data, scale, k_days)
+    final_df = get_final_df(model, data, scale, k_days)
     # predict the future price
     future_price = predict(model, data, n_steps, scale)
     print(f"Future price after {k_days} days is {future_price:.2f}$")
