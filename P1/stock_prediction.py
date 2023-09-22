@@ -133,7 +133,6 @@ def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, split
     # remove dates from the training/testing sets & convert to float32
     result["X_train"] = result["X_train"][:, :, :len(feature_columns)].astype(np.float32)
     result["X_test"] = result["X_test"][:, :, :len(feature_columns)].astype(np.float32)
-    print(result)
     return result
 
 

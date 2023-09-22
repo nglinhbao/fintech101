@@ -17,7 +17,7 @@ TRAIN_END = '2020-01-01'
 # Window size or the sequence length
 N_STEPS = 50
 # Lookup step, 1 is the next day
-LOOKUP_STEP = 15
+K_DAYS = 3
 STORE = True
 
 # whether to scale feature columns & output price as well
@@ -37,7 +37,7 @@ FEATURE_COLUMNS = ['Close','Open','High','Low','Adj Close', 'Volume']
 STORE_SCALE = True
 
 ### Visulization parameters
-TRADING_DAYS = 1
+TRADING_DAYS = 3
 
 ### model parameters
 
@@ -65,7 +65,7 @@ EPOCHS = 25
 ### Main code
 
 # load_data function
-data_loaded = load_data(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, LOOKUP_STEP, SPLIT_BY_DATE, TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, breakpoint_date=BREAKPOINT_DATE)
+data_loaded = load_data(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, K_DAYS, SPLIT_BY_DATE, TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, breakpoint_date=BREAKPOINT_DATE)
 
 # Assign dataframe
 data = data_loaded[0]
@@ -76,7 +76,7 @@ filename = data_loaded[1]
 visualization(data['df'], TRADING_DAYS)
 
 # Create model
-model = create_model(50, len(data['feature_columns']), LSTM, UNITS)
+model = create_model(50, len(FEATURE_COLUMNS), LSTM, UNITS, K_DAYS)
 
 train = True
 # Train model
@@ -84,5 +84,5 @@ if train:
     train_model(model, filename, data, 64, 25)
 
 # Test model
-test_model(data, model, filename, SCALE, LOOKUP_STEP, LOSS, N_STEPS)
+test_model(data, model, filename, SCALE, K_DAYS, LOSS, N_STEPS)
 

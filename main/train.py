@@ -5,7 +5,7 @@ import os
 
 
 # Create model function
-def create_model(sequence_length, n_features, layer_name, units, n_layers=2, dropout=0.3,
+def create_model(sequence_length, n_features, layer_name, units, k_days, n_layers=2, dropout=0.3,
                  loss="mean_absolute_error", optimizer="rmsprop", bidirectional=False):
     # Create a Sequential model
     model = Sequential()
@@ -42,7 +42,7 @@ def create_model(sequence_length, n_features, layer_name, units, n_layers=2, dro
         model.add(Dropout(dropout))
 
     # Add a Dense layer with linear activation as the output layer
-    model.add(Dense(1, activation="linear"))
+    model.add(Dense(units=k_days))
 
     # Compile the model with specified loss, metrics, and optimizer
     model.compile(loss=loss, metrics=["mean_absolute_error"], optimizer=optimizer)

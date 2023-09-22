@@ -35,6 +35,8 @@ def get_final_df(model, data):
     y_test = data["y_test"]
     # perform prediction and get prices
     y_pred = model.predict(X_test)
+    print(y_test.shape)
+    print(data["column_scaler"]["adjclose"])
     if SCALE:
         y_test = np.squeeze(data["column_scaler"]["adjclose"].inverse_transform(np.expand_dims(y_test, axis=0)))
         y_pred = np.squeeze(data["column_scaler"]["adjclose"].inverse_transform(y_pred))
@@ -123,7 +125,6 @@ print("Total profit:", total_profit)
 print("Profit per trade:", profit_per_trade)
 # plot true/pred prices graph
 plot_graph(final_df)
-print(final_df.tail(10))
 # save the final dataframe to csv-results folder
 csv_results_folder = "csv-results"
 if not os.path.isdir(csv_results_folder):

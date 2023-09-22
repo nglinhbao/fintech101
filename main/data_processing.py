@@ -31,12 +31,11 @@ def calculate_percentage(start_date, end_date, breakpoint_date):
     # Calculate the time differences
     time_difference_start_to_breakpoint = (breakpoint_date - start_date).days
     time_difference_start_to_end = (end_date - start_date).days
-    print(breakpoint_date)
     # Calculate the percentage
     percentage = (time_difference_start_to_breakpoint / time_difference_start_to_end)
     return 1-percentage
 
-def load_data(ticker, start_date, end_date, n_steps, scale, shuffle, store, lookup_step, split_by_date,
+def load_data(ticker, start_date, end_date, n_steps, scale, shuffle, store, k_days, split_by_date,
                 test_size, feature_columns, store_scale, breakpoint_date="2000-01-01"):
     global scaler
     # see if ticker is already a loaded stock from yahoo finance
@@ -77,45 +76,29 @@ def load_data(ticker, start_date, end_date, n_steps, scale, shuffle, store, look
         # add the MinMaxScaler instances to the result returned
         result["column_scaler"] = column_scaler
 
-    # add the target column (label) by shifting by `lookup_step`
-    df['future'] = df['Adj Close'].shift(-lookup_step)
+    # Extract the relevant columns
+    X = df[feature_columns + ["Date"]].values
+    Y = df['Adj Close'].values
+    # Initialize lists to store X and Y sequences
+    X_data = []
+    Y_data = []
 
-    # last `lookup_step` columns contains NaN in future column
-    # get them before droping NaNs
-    last_sequence = np.array(df[feature_columns].tail(lookup_step))
+    # Create sequences of n_step for X and k_days for Y
+    for i in range(len(df) - n_steps - k_days + 1):
+        X_sequence = X[i:i + n_steps]
+        Y_sequence = Y[i + n_steps:i + n_steps + k_days]
 
-    # drop NaNs
-    df.dropna(inplace=True)
+        X_data.append(X_sequence)
+        Y_data.append(Y_sequence)
+    print(Y_data)
 
-    sequence_data = []
-    sequences = deque(maxlen=n_steps)
+    X, y, last_sequence = multivariate_multistep_data_process(df, n_steps, k_days, feature_columns)
 
-    for entry, target in zip(df[feature_columns + ["Date"]].values, df['future'].values):
-        sequences.append(entry)
-        if len(sequences) == n_steps:
-            sequence_data.append([np.array(sequences), target])
-
-    # get the last sequence by appending the last `n_step` sequence with `lookup_step` sequence
-    # for instance, if n_steps=50 and lookup_step=10, last_sequence should be of 60 (that is 50+10) length
-    # this last_sequence will be used to predict future stock prices that are not available in the dataset
-    last_sequence = list([s[:len(feature_columns)] for s in sequences]) + list(last_sequence)
-    last_sequence = np.array(last_sequence).astype(np.float32)
     # add to result
     result['last_sequence'] = last_sequence
 
-    # construct the X's and y's
-    X, y = [], []
-    for seq, target in sequence_data:
-        X.append(seq)
-        y.append(target)
-
-    # convert to numpy arrays
-    X = np.array(X)
-    y = np.array(y)
-
     if split_by_date:
         test_size = calculate_percentage(start_date, end_date, breakpoint_date)
-        # split the dataset randomly
         result["X_train"], result["X_test"], result["y_train"], result["y_test"] = train_test_split(X, y,
                                                                                                     test_size=test_size,
                                                                                                     shuffle=shuffle)
@@ -168,4 +151,38 @@ def store_data(data, ticker):
 def load_data_file(ticker, date):
     df = pd.read_csv(f"data/{ticker}_{date}.csv")
     return df
+
+def multivariate_multistep_data_process(df, n_steps, k_days, feature_columns):
+    # Extract the relevant columns
+    X = df[feature_columns + ["Date"]].values
+    Y = df['Adj Close'].values
+    # Initialize lists to store X and Y sequences
+    X_data = []
+    Y_data = []
+
+    # Create sequences of n_step for X and k_days for Y
+    for i in range(len(df) - n_steps - k_days + 1):
+        X_sequence = X[i:i + n_steps]
+        Y_sequence = Y[i + n_steps:i + n_steps + k_days]
+
+        X_data.append(X_sequence)
+        Y_data.append(Y_sequence)
+    print(Y_data)
+
+    # last `k_days` columns contains NaN in future column
+    # get them before droping NaNs
+    last_sequence = np.array(df[feature_columns].tail(n_steps))
+    # get the last sequence by appending the last `n_step` sequence with `k_days` sequence
+    # for instance, if n_steps=50 and k_days=10, last_sequence should be of 60 (that is 50+10) length
+    # this last_sequence will be used to predict future stock prices that are not available in the dataset
+    X_predict_sequence = X[-n_steps:]
+    last_sequence = list([s[:len(feature_columns)] for s in X_predict_sequence]) + list(last_sequence)
+    last_sequence = np.array(last_sequence).astype(np.float32)
+
+    # Convert to numpy arrays
+    X = np.array(X_data)
+    y = np.array(Y_data)
+
+    return X, y, last_sequence
+
 
