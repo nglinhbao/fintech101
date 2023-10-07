@@ -5,7 +5,7 @@ import os
 
 
 # Create model function
-def create_model(sequence_length, n_features, layer_name, units, k_days, n_layers=2, dropout=0.3,
+def create_model_LSTM(sequence_length, n_features, layer_name, units, k_days, n_layers=2, dropout=0.3,
                  loss="mean_absolute_error", optimizer="rmsprop", bidirectional=False):
     # Create a Sequential model
     model = Sequential()
@@ -51,7 +51,7 @@ def create_model(sequence_length, n_features, layer_name, units, k_days, n_layer
     return model
 
 
-def train_model(model, model_name, df, batch_size, epochs):
+def train_model_LSTM(model, model_name, df, batch_size, epochs):
     # some tensorflow callbacks
     checkpointer = ModelCheckpoint(os.path.join("results", model_name + ".h5"), save_weights_only=True,
                                    save_best_only=True, verbose=1)

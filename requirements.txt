@@ -8,3 +8,4 @@ finance
 yahoo_fin
 yfinance
 sklearn
+pmdarima

@@ -35,7 +35,7 @@ def calculate_percentage(start_date, end_date, breakpoint_date):
     percentage = (time_difference_start_to_breakpoint / time_difference_start_to_end)
     return 1-percentage
 
-def load_data(ticker, start_date, end_date, n_steps, scale, shuffle, store, k_days, split_by_date,
+def load_data_RF(ticker, start_date, end_date, n_steps, scale, shuffle, store, k_days, split_by_date,
                 test_size, feature_columns, store_scale, breakpoint_date="2000-01-01"):
     global scaler
     # see if ticker is already a loaded stock from yahoo finance
@@ -78,24 +78,7 @@ def load_data(ticker, start_date, end_date, n_steps, scale, shuffle, store, k_da
 
     # Extract the relevant columns
     X = df[feature_columns + ["Date"]].values
-    Y = df['Adj Close'].values
-    # Initialize lists to store X and Y sequences
-    X_data = []
-    Y_data = []
-
-    # Create sequences of n_step for X and k_days for Y
-    for i in range(len(df) - n_steps - k_days + 1):
-        X_sequence = X[i:i + n_steps]
-        Y_sequence = Y[i + n_steps:i + n_steps + k_days]
-
-        X_data.append(X_sequence)
-        Y_data.append(Y_sequence)
-    print(Y_data)
-
-    X, y, last_sequence = multivariate_multistep_data_process(df, n_steps, k_days, feature_columns)
-
-    # add to result
-    result['last_sequence'] = last_sequence
+    y = df['Adj Close'].values
 
     if split_by_date:
         test_size = calculate_percentage(start_date, end_date, breakpoint_date)
@@ -107,16 +90,16 @@ def load_data(ticker, start_date, end_date, n_steps, scale, shuffle, store, k_da
         result["X_train"], result["X_test"], result["y_train"], result["y_test"] = train_test_split(X, y,
                                                                                                     test_size=test_size,
                                                                                                     shuffle=shuffle)
-
+    print(result["X_test"][:, -1])
     # get the list of test set dates
-    dates = result["X_test"][:, -1, -1]
+    dates = result["X_test"][:, -1]
     # retrieve test features from the original dataframe
     result["test_df"] = result["df"].loc[dates]
     # remove duplicated dates in the testing dataframe
     result["test_df"] = result["test_df"][~result["test_df"].index.duplicated(keep='first')]
     # remove dates from the training/testing sets & convert to float32
-    result["X_train"] = result["X_train"][:, :, :len(feature_columns)].astype(np.float32)
-    result["X_test"] = result["X_test"][:, :, :len(feature_columns)].astype(np.float32)
+    result["X_train"] = result["X_train"][:, :len(feature_columns)].astype(np.float32)
+    result["X_test"] = result["X_test"][:, :len(feature_columns)].astype(np.float32)
 
     filename = ""
 
@@ -152,37 +135,5 @@ def load_data_file(ticker, date):
     df = pd.read_csv(f"data/{ticker}_{date}.csv")
     return df
 
-def multivariate_multistep_data_process(df, n_steps, k_days, feature_columns):
-    # Extract the relevant columns
-    X = df[feature_columns + ["Date"]].values
-    Y = df['Adj Close'].values
-    # Initialize lists to store X and Y sequences
-    X_data = []
-    Y_data = []
-
-    # Create sequences of n_step for X and k_days for Y
-    for i in range(len(df) - n_steps - k_days + 1):
-        X_sequence = X[i:i + n_steps]
-        Y_sequence = Y[i + n_steps:i + n_steps + k_days]
-
-        X_data.append(X_sequence)
-        Y_data.append(Y_sequence)
-    print(Y_data)
-
-    # last `k_days` columns contains NaN in future column
-    # get them before droping NaNs
-    last_sequence = np.array(df[feature_columns].tail(n_steps))
-    # get the last sequence by appending the last `n_step` sequence with `k_days` sequence
-    # for instance, if n_steps=50 and k_days=10, last_sequence should be of 60 (that is 50+10) length
-    # this last_sequence will be used to predict future stock prices that are not available in the dataset
-    X_predict_sequence = X[-n_steps:]
-    last_sequence = list([s[:len(feature_columns)] for s in X_predict_sequence]) + list(last_sequence)
-    last_sequence = np.array(last_sequence).astype(np.float32)
-
-    # Convert to numpy arrays
-    X = np.array(X_data)
-    y = np.array(Y_data)
-
-    return X, y, last_sequence
 
 

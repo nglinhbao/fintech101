@@ -33,23 +33,19 @@ def get_final_df(model, data, scale, k_days):
 
     test_df = data["test_df"]
     # test_df = add_nan_rows(test_df, k_days-1)
-    print(y_pred)
     # add predicted future prices to the dataframe
     for i in range(0,k_days):
         test_df[f"Adj Close_{i+1}"] = y_pred[:,i]
         # add true future prices to the dataframe
         test_df[f"true_Adj Close_{i+1}"] = y_test[:,i]
 
-    print(test_df)
-
     # sort the dataframe by date
     test_df.sort_index(inplace=True)
-    print(test_df)
 
     final_df = test_df
     return final_df
 
-def test_model(data, model, model_name, scale, k_days, loss_name, n_steps):
+def test_model_LSTM(data, model, model_name, scale, k_days, loss_name, n_steps):
     # load optimal model weights from results folder
     model_path = os.path.join("results", model_name) + ".h5"
     model.load_weights(model_path)
@@ -76,6 +72,8 @@ def test_model(data, model, model_name, scale, k_days, loss_name, n_steps):
         os.mkdir(csv_results_folder)
     csv_filename = os.path.join(csv_results_folder, model_name + ".csv")
     final_df.to_csv(csv_filename)
+
+    return final_df
 
 def reshape_y(y, k_days):
     new_y = []
@@ -107,7 +105,6 @@ def predict(model, data, n_steps, scale):
     last_sequence = np.expand_dims(last_sequence, axis=0)
     # get the prediction (scaled from 0 to 1)
     prediction = model.predict(last_sequence)
-    print(prediction)
     # get the price (by inverting the scaling)
     if scale:
         predicted_price = data["column_scaler"]["Adj Close"].inverse_transform(prediction)[0][-1]
