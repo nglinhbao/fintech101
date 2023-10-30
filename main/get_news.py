@@ -55,6 +55,10 @@ def get_news(gn, search, start_date, end_date):
 
     return stories
 
+start_date = '2017-01-01'
+end_date = '2020-01-01'
+get_news_df("TSLA", start_date, end_date)
+
 
 
 
