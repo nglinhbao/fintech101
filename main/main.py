@@ -10,8 +10,9 @@ from ARIMA import calculate_step_wise_ARIMA, train_test_ARIMA, plot_graph
 from RF import train_modeL_RF, plot_graph_RF
 from XGB import train_modeL_XGB, plot_graph_XGB
 from data_processing_RF import load_data_RF
+from get_news import get_news_df
+from sentiment_analysis import sentiment_analysis
 import pandas as pd
-
 
 # Parameters
 
@@ -73,6 +74,15 @@ CELLS = [LSTM]
 forecast_results = []
 visualize = True
 TSLA_HEADLINES = pd.read_csv('./tesla-sentiment-result/tesla-headlines-2017-2020-final.csv', encoding='utf-8')
+
+DOWNLOAD_HEADLINES = True
+CALCULATE_SENTIMENT = True
+
+if DOWNLOAD_HEADLINES:
+    get_news_df(TRAIN_START, TRAIN_END)
+
+if CALCULATE_SENTIMENT:
+    sentiment_analysis(TRAIN_START, TRAIN_END)
 
 for CELL in CELLS:
     ### Main code
@@ -173,38 +183,63 @@ for CELL in CELLS:
         df1 = s1.to_frame()
         forecast_results.append(df1)
 
-    # elif CELL == "XGB":
-    #     # load_data function
-    #     data_loaded = load_data_RF(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, K_DAYS, SPLIT_BY_DATE,
-    #                             TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, TSLA_HEADLINES, breakpoint_date=BREAKPOINT_DATE)
-    #
-    #     # Assign dataframe
-    #     data = data_loaded[0]
-    #     # Filename
-    #     filename = data_loaded[1]
-    #
-    #     # Visulize candlestick and boxplot
-    #     # visualization(data['df'], TRADING_DAYS)
-    #
-    #     # best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy = hyper_parameter_tuning_XGB(data)
-    #     best_n_estimators = 2000
-    #     best_max_depth = 100
-    #     best_min_child_weight = 2
-    #     best_gamma = 5
-    #     best_learning_rate = 0.1
-    #     best_train_accuracy = 1
-    #     best_test_accuracy = 1
-    #
-    #     final_df = train_modeL_XGB(best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy, data, SCALE)
-    #
-    #     plot_graph_XGB(final_df)
-    #
-    #     result = final_df["XGB"]
-    #
-    #     s1 = pd.Series(result)
-    #     # Convert Series to DataFrame
-    #     df1 = s1.to_frame()
-    #     forecast_results.append(df1)
+    elif CELL == "XGB":
+        # load_data function
+        data_loaded = load_data_RF(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, K_DAYS,
+                                   SPLIT_BY_DATE,
+                                   TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, TSLA_HEADLINES,
+                                   breakpoint_date=BREAKPOINT_DATE)
+
+        # Assign dataframe
+        data = data_loaded[0]
+        # Filename
+        filename = data_loaded[1]
+
+        # Visulize candlestick and boxplot
+        # visualization(data['df'], TRADING_DAYS)
+
+        # best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy = hyper_parameter_tuning_XGB(data)
+        best_n_estimators = 2000
+        best_max_depth = 100
+        best_min_child_weight = 2
+        best_gamma = 5
+        best_learning_rate = 0.1
+        best_train_accuracy = 1
+        best_test_accuracy = 1
+
+        final_df = train_modeL_XGB(best_n_estimators, best_max_depth, best_min_child_weight, best_gamma,
+                                   best_learning_rate, best_train_accuracy, best_test_accuracy, data, SCALE)
+
+        plot_graph_XGB(final_df)
+
+        result = final_df["XGB"]
+
+        s1 = pd.Series(result)
+        # Convert Series to DataFrame
+        df1 = s1.to_frame()
+        forecast_results.append(df1)
+        # Visulize candlestick and boxplot
+        # visualization(data['df'], TRADING_DAYS)
+
+        # best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy = hyper_parameter_tuning_XGB(data)
+        best_n_estimators = 2000
+        best_max_depth = 100
+        best_min_child_weight = 2
+        best_gamma = 5
+        best_learning_rate = 0.1
+        best_train_accuracy = 1
+        best_test_accuracy = 1
+
+        final_df = train_modeL_XGB(best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy, data, SCALE)
+
+        plot_graph_XGB(final_df)
+
+        result = final_df["XGB"]
+
+        s1 = pd.Series(result)
+        # Convert Series to DataFrame
+        df1 = s1.to_frame()
+        forecast_results.append(df1)
 
 print(forecast_results)
 

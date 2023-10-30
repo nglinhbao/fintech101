@@ -23,7 +23,7 @@ from transformers import AdamW
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import classification_report
 
-def sentiment_analysis():
+def sentiment_analysis(start_date, end_date):
     device = torch.device("cpu")
 
     # import BERT-base pretrained model
@@ -73,7 +73,7 @@ def sentiment_analysis():
 
     test_model(device, test_seq, test_mask, test_y)
 
-    predict_tesla_headlines(tokenizer, pad_len, device)
+    predict_tesla_headlines(tokenizer, pad_len, device, start_date, end_date)
 
 class BERT_architecture(nn.Module):
 
@@ -352,8 +352,8 @@ def test_model(device, test_seq, test_mask, test_y):
     pred = np.argmax(preds, axis=1)
     print(classification_report(test_y, pred))
 
-def predict_tesla_headlines(tokenizer, pad_len, device):
-    df_headlines = pd.read_csv('./headlines/tesla_headlines_2017_2020.csv')
+def predict_tesla_headlines(tokenizer, pad_len, device, start_date, end_date):
+    df_headlines = pd.read_csv(f'./headlines/tesla_headlines_{start_date[:4]}_{end_date[:4]}.csv')
     df_headlines.head(10)
 
     # Create an empty list to store predictions
@@ -388,6 +388,4 @@ def predict_tesla_headlines(tokenizer, pad_len, device):
     df_headlines['predictions'] = predictions
     df_headlines.to_csv('./tesla-sentiment-result/tesla-headlines-2017-2020-final.csv', index=False)
     print(df_headlines)
-    
-sentiment_analysis()
 

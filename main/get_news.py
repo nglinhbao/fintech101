@@ -20,12 +20,6 @@ def get_news_df(ticker, start_date, end_date):
 
     print(df)
 
-    # Get today's date
-    today = date.today()
-
-    # Format today's date as YYYY-MM-DD
-    today_str = today.strftime("%Y-%m-%d")
-
     # Add today's date to the file name
     df.to_csv(f'./headlines/tesla_headlines_{start_date[:4]}_{end_date[:4]}.csv')
 
@@ -60,10 +54,6 @@ def get_news(gn, search, start_date, end_date):
         start_date += delta
 
     return stories
-
-start_date = '2017-01-01'
-end_date = '2020-01-01'
-get_news_df("TSLA", start_date, end_date)
 
 
 
