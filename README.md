@@ -24,16 +24,6 @@ Change the current directory to main.
 
 `cd main`
 
-Run get_news.py to get the headlines about Tesla:
-
-`python get_news.py`
-
-Then, sentiment scores for those headlines need calculating:
-
-`python sentiment-analysis.py`
-
-The result of this function will be stored in `tesla-sentiment-result/tesla-headlines-{start_year}-{end_year}-final.csv`.
-
-After finishing all of these stages, you can run the prediction model:
+Finally, you can run the prediction model:
 
 `python main.py`
