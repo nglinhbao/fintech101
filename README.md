@@ -14,7 +14,7 @@ Next, as the project uses Python 3.10, you need to create a new environment with
 
 `conda create --name myenv python=3.10`
 
-The last step is installing the packages in requirements.txt. There are some version conflicts, however, we want to ignore them for some reasons:
+The last step is installing the packages in requirements.txt. There are some version conflicts, however, we want to ignore them for some reasons. Please use the following command to install to packages regardless of version conflicts:
 
 `pip install --no-deps -r requirements.txt`
 
