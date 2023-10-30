@@ -23,8 +23,8 @@ def delete_gaps(df, trading_days):
     return result_df
 
 #Visualize the dataframe
-def visualization(df, trading_days):
-    dt_range = pd.date_range(start="2015-01-01", end="2015-03-01")
+def visualization(df, trading_days, start_date, end_date):
+    dt_range = pd.date_range(start=start_date, end=end_date)
     df = df[df.index.isin(dt_range)]
 
     # Calculate the average values of 'trading_days' consecutive days
@@ -32,8 +32,6 @@ def visualization(df, trading_days):
 
     # Delete the redundants rows after rolling
     # df = delete_gaps(df, trading_days)
-
-    print(df)
 
     #Create median column for boxplot chart
     df['Median'] = df[['High', 'Low', 'Open', 'Close']].median(axis=1)

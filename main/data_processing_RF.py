@@ -36,15 +36,32 @@ def calculate_percentage(start_date, end_date, breakpoint_date):
     return 1-percentage
 
 def load_data_RF(ticker, start_date, end_date, n_steps, scale, shuffle, store, k_days, split_by_date,
-                test_size, feature_columns, store_scale, breakpoint_date="2000-01-01"):
+                test_size, feature_columns, store_scale, headlines, breakpoint_date="2000-01-01"):
     global scaler
     # see if ticker is already a loaded stock from yahoo finance
     if isinstance(ticker, str):
         # load it from yahoo_fin library
         df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+        # Assuming df1 is your first DataFrame and df2 is your second DataFrame
+        headlines['Date'] = pd.to_datetime(headlines['date'])
+        # Merge the DataFrames on the date
+        df = pd.merge(df, headlines[['Date', 'predictions']], left_index=True, right_on='Date', how='left')
+        # Rename the 'predictions' column to 'Sentiment'
+        df.rename(columns={'predictions': 'Sentiment'}, inplace=True)
+        df.set_index('Date', inplace=True)
+
     elif isinstance(ticker, pd.DataFrame):
         # if already loaded, use it directly
         df = ticker
+        # Assuming df1 is your first DataFrame and df2 is your second DataFrame
+        headlines['Date'] = pd.to_datetime(headlines['date'])
+        # Merge the DataFrames on the date
+        df = pd.merge(df, headlines[['Date', 'predictions']], left_index=True, right_on='Date', how='left')
+        # Rename the 'predictions' column to 'Sentiment'
+        df.rename(columns={'predictions': 'Sentiment'}, inplace=True)
+        df.set_index('Date', inplace=True)
+        print(df)
+
     else:
         #print error if there is
         raise TypeError("ticker can be either a str or a `pd.DataFrame` instances")

@@ -3,7 +3,7 @@ import numpy as np
 from sklearn import linear_model
 from sklearn.ensemble import RandomForestRegressor
 from matplotlib import pyplot as plt
-from  statsmodels.tsa.vector_ar.vecm import *
+from statsmodels.tsa.vector_ar.vecm import *
 
 
 import itertools

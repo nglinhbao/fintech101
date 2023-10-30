@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Dense, Dropout, LSTM, InputLayer, SimpleRNN, GRU
+from tensorflow.keras.layers import LSTM, SimpleRNN, GRU
 
 from data_processing_LSTM import load_data
 from visulization import visualization
@@ -7,8 +7,8 @@ from test_LSTM import test_model_LSTM
 from SARIMA import calculate_step_wise_SARIMA, train_test_SARIMA
 from data_processing_SARIMA import load_data_SARIMA
 from ARIMA import calculate_step_wise_ARIMA, train_test_ARIMA, plot_graph
-from RF import hyper_parameter_tuning_RF, train_modeL_RF, plot_graph_RF
-from XGB import hyper_parameter_tuning_XGB, train_modeL_XGB, plot_graph_XGB
+from RF import train_modeL_RF, plot_graph_RF
+from XGB import train_modeL_XGB, plot_graph_XGB
 from data_processing_RF import load_data_RF
 import pandas as pd
 
@@ -19,7 +19,7 @@ import pandas as pd
 COMPANY = "TSLA"
 
 # start = '2015-01-01', end='2020-01-01'
-TRAIN_START = '2015-01-01'
+TRAIN_START = '2017-01-01'
 TRAIN_END = '2020-01-01'
 
 # Window size or the sequence length
@@ -46,7 +46,7 @@ STORE_SCALE = True
 ROLLING = False
 
 ### Visulization parameters
-TRADING_DAYS = 1
+TRADING_DAYS = 30
 
 ### model parameters
 
@@ -68,29 +68,34 @@ OPTIMIZER = "adam"
 BATCH_SIZE = 64
 EPOCHS = 25
 
-CELLS = [GRU, "ARIMA", "SARIMA", "RF"]
-# CELLS = ["RF"]
+# CELLS = [GRU, "ARIMA", "SARIMA", "RF"]
+CELLS = [LSTM]
 forecast_results = []
+visualize = True
+TSLA_HEADLINES = pd.read_csv('./tesla-sentiment-result/tesla-headlines-2017-2020-final.csv', encoding='utf-8')
 
 for CELL in CELLS:
     ### Main code
 
     if CELL == LSTM or CELL == SimpleRNN or CELL == GRU:
         # load_data function
-        data_loaded = load_data(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, K_DAYS, SPLIT_BY_DATE, TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, breakpoint_date=BREAKPOINT_DATE)
+        data_loaded = load_data(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, K_DAYS, SPLIT_BY_DATE, TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, TSLA_HEADLINES, breakpoint_date=BREAKPOINT_DATE)
 
         # Assign dataframe
         data = data_loaded[0]
+
         # Filename
         filename = data_loaded[1]
 
-        # Visulize candlestick and boxplot
-        visualization(data['df'], TRADING_DAYS)
+        if visualize:
+            # Visulize candlestick and boxplot
+            visualization(data['df'], TRADING_DAYS, TRAIN_START, TRAIN_END)
+            visualize = False
 
         # Create model
         model = create_model_LSTM(50, len(FEATURE_COLUMNS), CELL, UNITS, K_DAYS)
 
-        train = False
+        train = True
         # Train model
         if train:
             train_model_LSTM(model, filename, data, 64, 25)
@@ -139,7 +144,7 @@ for CELL in CELLS:
     elif CELL == "RF":
         # load_data function
         data_loaded = load_data_RF(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, K_DAYS, SPLIT_BY_DATE,
-                                TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, breakpoint_date=BREAKPOINT_DATE)
+                                TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, TSLA_HEADLINES, breakpoint_date=BREAKPOINT_DATE)
 
         # Assign dataframe
         data = data_loaded[0]
@@ -168,38 +173,38 @@ for CELL in CELLS:
         df1 = s1.to_frame()
         forecast_results.append(df1)
 
-    elif CELL == "XGB":
-        # load_data function
-        data_loaded = load_data_RF(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, K_DAYS, SPLIT_BY_DATE,
-                                TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, breakpoint_date=BREAKPOINT_DATE)
-
-        # Assign dataframe
-        data = data_loaded[0]
-        # Filename
-        filename = data_loaded[1]
-
-        # Visulize candlestick and boxplot
-        # visualization(data['df'], TRADING_DAYS)
-
-        # best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy = hyper_parameter_tuning_XGB(data)
-        best_n_estimators = 2000
-        best_max_depth = 100
-        best_min_child_weight = 2
-        best_gamma = 5
-        best_learning_rate = 0.1
-        best_train_accuracy = 1
-        best_test_accuracy = 1
-
-        final_df = train_modeL_XGB(best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy, data, SCALE)
-
-        plot_graph_XGB(final_df)
-
-        result = final_df["XGB"]
-
-        s1 = pd.Series(result)
-        # Convert Series to DataFrame
-        df1 = s1.to_frame()
-        forecast_results.append(df1)
+    # elif CELL == "XGB":
+    #     # load_data function
+    #     data_loaded = load_data_RF(COMPANY, TRAIN_START, TRAIN_END, N_STEPS, SCALE, SHUFFLE, STORE, K_DAYS, SPLIT_BY_DATE,
+    #                             TEST_SIZE, FEATURE_COLUMNS, STORE_SCALE, TSLA_HEADLINES, breakpoint_date=BREAKPOINT_DATE)
+    #
+    #     # Assign dataframe
+    #     data = data_loaded[0]
+    #     # Filename
+    #     filename = data_loaded[1]
+    #
+    #     # Visulize candlestick and boxplot
+    #     # visualization(data['df'], TRADING_DAYS)
+    #
+    #     # best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy = hyper_parameter_tuning_XGB(data)
+    #     best_n_estimators = 2000
+    #     best_max_depth = 100
+    #     best_min_child_weight = 2
+    #     best_gamma = 5
+    #     best_learning_rate = 0.1
+    #     best_train_accuracy = 1
+    #     best_test_accuracy = 1
+    #
+    #     final_df = train_modeL_XGB(best_n_estimators, best_max_depth, best_min_child_weight, best_gamma, best_learning_rate, best_train_accuracy, best_test_accuracy, data, SCALE)
+    #
+    #     plot_graph_XGB(final_df)
+    #
+    #     result = final_df["XGB"]
+    #
+    #     s1 = pd.Series(result)
+    #     # Convert Series to DataFrame
+    #     df1 = s1.to_frame()
+    #     forecast_results.append(df1)
 
 print(forecast_results)
 
