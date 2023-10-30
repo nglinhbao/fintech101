@@ -1,6 +1,6 @@
 # Stock Price Prediction for Tesla
 
-During the semester, this program was built through 3 stages: data processing, machine learning, and extension. In the first stage, data processing includes importing, cleaning data and visualization. The second stage covers deep learning model deployment, multivariate, multistep and ensemble methods to combine all the models. For the last stage, I developed a sentiment analysis and integrated it to the model that was built in the previous stages. 
+In this Final Report, I will discuss how I developed the Stock Price Prediction model for Tesla. This work presents a hybrid deep-learning model using both time series and sentiment analysis. The final product includes data processing and machine learning.
 
 # Instruction
 
@@ -14,7 +14,7 @@ Next, as the project uses Python 3.10, you need to create a new environment with
 
 `conda create --name myenv python=3.10`
 
-The last step is installing the packages in requirements.txt. There are some version conflicts, however, we want to ignore this for some reasons:
+The last step is installing the packages in requirements.txt. There are some version conflicts, however, we want to ignore them for some reasons:
 
 `pip install --no-deps -r requirements.txt`
 
